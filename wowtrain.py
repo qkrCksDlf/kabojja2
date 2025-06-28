@@ -7,14 +7,14 @@ import pandas as pd
 from PIL import Image
 from pytorch_lightning import seed_everything
 
-from utils.data import HWC3, apply_color, resize_image
-from utils.ddim import DDIMSampler
-from utils.model import create_model, load_state_dict
+from data import HWC3, apply_color, resize_image
+from ddim import DDIMSampler
+from model import create_model, load_state_dict
 
 # 모델 로드
-model = create_model('./models/cldm_v21.yaml').cpu()
+model = create_model('cldm_v21.yaml').cpu() #./models/
 model.load_state_dict(load_state_dict(
-    'lightning_logs/version_6/checkpoints/colorizenet-sd21.ckpt', location='cuda'))
+    'colorizenet-sd21.ckpt', location='cuda')) #lightning_logs/version_6/checkpoints/
 model = model.cuda()
 ddim_sampler = DDIMSampler(model)
 
