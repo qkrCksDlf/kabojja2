@@ -1,7 +1,7 @@
 https://github.com/CompVis/latent-diffusion.git
 
 ```
-pip install torch==2.1.0+cu118 torchvision==0.16.0+cu118 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.6.0+cu118 torchvision==0.21.0+cu118 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu118
 ```
 
 ```
