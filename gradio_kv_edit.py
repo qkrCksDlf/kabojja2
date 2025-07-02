@@ -60,195 +60,235 @@ class FluxEditor_kv_demo:
              source_prompt, target_prompt, 
              inversion_num_steps, denoise_num_steps, 
              skip_step, 
-             inversion_guidance, denoise_guidance,seed,
+             inversion_guidance, denoise_guidance, seed,
              re_init, attn_mask
              ):
-        self.z0 = None
-        self.zt = None
-        # self.info = {}
-        # gc.collect()
-        if 'feature' in self.info:
-            key_list = list(self.info['feature'].keys())
-            for key in key_list:
-                del self.info['feature'][key]
-        self.info = {}
-        
-        rgba_init_image = brush_canvas["background"]
-        init_image = rgba_init_image[:,:,:3]
-        shape = init_image.shape        
-        height = shape[0] if shape[0] % 16 == 0 else shape[0] - shape[0] % 16
-        width = shape[1] if shape[1] % 16 == 0 else shape[1] - shape[1] % 16
-        init_image = init_image[:height, :width, :]
-        rgba_init_image = rgba_init_image[:height, :width, :]
+        try:
+            self.z0 = None
+            self.zt = None
+            
+            # info 초기화 개선
+            if hasattr(self, 'info') and 'feature' in self.info:
+                key_list = list(self.info['feature'].keys())
+                for key in key_list:
+                    del self.info['feature'][key]
+            self.info = {}
+            
+            # brush_canvas 검증
+            if not brush_canvas or "background" not in brush_canvas:
+                raise ValueError("Invalid brush canvas data")
+                
+            rgba_init_image = brush_canvas["background"]
+            
+            # numpy 배열 확인
+            if not isinstance(rgba_init_image, np.ndarray):
+                rgba_init_image = np.array(rgba_init_image)
+                
+            init_image = rgba_init_image[:,:,:3]
+            shape = init_image.shape        
+            height = shape[0] if shape[0] % 16 == 0 else shape[0] - shape[0] % 16
+            width = shape[1] if shape[1] % 16 == 0 else shape[1] - shape[1] % 16
+            init_image = init_image[:height, :width, :]
+            rgba_init_image = rgba_init_image[:height, :width, :]
 
-        opts = SamplingOptions(
-            source_prompt=source_prompt,
-            target_prompt=target_prompt,
-            width=width,
-            height=height,
-            inversion_num_steps=inversion_num_steps,
-            denoise_num_steps=denoise_num_steps,
-            skip_step=0,# no skip step in inverse leads chance to adjest skip_step in edit
-            inversion_guidance=inversion_guidance,
-            denoise_guidance=denoise_guidance,
-            seed=seed,
-            re_init=re_init,
-            attn_mask=attn_mask
-        )
-        torch.manual_seed(opts.seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(opts.seed)
-        torch.cuda.empty_cache()
-        
-        if opts.attn_mask:
-            rgba_mask = brush_canvas["layers"][0][:height, :width, :]
-            mask = rgba_mask[:,:,3]/255
-            mask = mask.astype(int)
-        
-            mask = torch.from_numpy(mask).unsqueeze(0).unsqueeze(0).to(torch.bfloat16).to(self.device)
-        else:
-            mask = None
-        
-        self.init_image = self.encode(init_image, self.device).to(self.device)
-
-        t0 = time.perf_counter()
-
-        if self.offload:
-            self.ae = self.ae.cpu()
-            torch.cuda.empty_cache()
-            self.t5, self.clip = self.t5.to(self.device), self.clip.to(self.device)
-
-        with torch.no_grad():
-            inp = prepare(self.t5, self.clip,self.init_image, prompt=opts.source_prompt)
-        
-        if self.offload:
-            self.t5, self.clip = self.t5.cpu(), self.clip.cpu()
-            torch.cuda.empty_cache()
-            self.model = self.model.to(self.device)
-        self.z0,self.zt,self.info = self.model.inverse(inp,mask,opts)
-        
-        if self.offload:
-            self.model.cpu()
+            opts = SamplingOptions(
+                source_prompt=source_prompt,
+                target_prompt=target_prompt,
+                width=width,
+                height=height,
+                inversion_num_steps=int(inversion_num_steps),
+                denoise_num_steps=int(denoise_num_steps),
+                skip_step=0,  # no skip step in inverse leads chance to adjust skip_step in edit
+                inversion_guidance=float(inversion_guidance),
+                denoise_guidance=float(denoise_guidance),
+                seed=int(seed) if seed != -1 else torch.randint(0, 2**32, (1,)).item(),
+                re_init=bool(re_init),
+                attn_mask=bool(attn_mask)
+            )
+            
+            torch.manual_seed(opts.seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(opts.seed)
             torch.cuda.empty_cache()
             
-        t1 = time.perf_counter()
-        print(f"inversion Done in {t1 - t0:.1f}s.")
-        return None
+            mask = None
+            if opts.attn_mask:
+                # layers 존재 확인
+                if "layers" in brush_canvas and len(brush_canvas["layers"]) > 0:
+                    rgba_mask = brush_canvas["layers"][0][:height, :width, :]
+                    if not isinstance(rgba_mask, np.ndarray):
+                        rgba_mask = np.array(rgba_mask)
+                    mask = rgba_mask[:,:,3]/255
+                    mask = mask.astype(int)
+                    mask = torch.from_numpy(mask).unsqueeze(0).unsqueeze(0).to(torch.bfloat16).to(self.device)
+            
+            self.init_image = self.encode(init_image, self.device).to(self.device)
 
-        
-        
+            t0 = time.perf_counter()
+
+            if self.offload:
+                self.ae = self.ae.cpu()
+                torch.cuda.empty_cache()
+                self.t5, self.clip = self.t5.to(self.device), self.clip.to(self.device)
+
+            with torch.no_grad():
+                inp = prepare(self.t5, self.clip, self.init_image, prompt=opts.source_prompt)
+            
+            if self.offload:
+                self.t5, self.clip = self.t5.cpu(), self.clip.cpu()
+                torch.cuda.empty_cache()
+                self.model = self.model.to(self.device)
+                
+            self.z0, self.zt, self.info = self.model.inverse(inp, mask, opts)
+            
+            if self.offload:
+                self.model.cpu()
+                torch.cuda.empty_cache()
+                
+            t1 = time.perf_counter()
+            print(f"inversion Done in {t1 - t0:.1f}s.")
+            return None
+            
+        except Exception as e:
+            print(f"Error in inverse: {e}")
+            return None
+
     @torch.inference_mode()
     def edit(self, brush_canvas,
              source_prompt, target_prompt, 
              inversion_num_steps, denoise_num_steps, 
              skip_step, 
-             inversion_guidance, denoise_guidance,seed,
-             re_init, attn_mask,attn_scale
+             inversion_guidance, denoise_guidance, seed,
+             re_init, attn_mask, attn_scale
              ):
-        
-        torch.cuda.empty_cache()
-        
-        rgba_init_image = brush_canvas["background"]
-        init_image = rgba_init_image[:,:,:3]
-        shape = init_image.shape        
-        height = shape[0] if shape[0] % 16 == 0 else shape[0] - shape[0] % 16
-        width = shape[1] if shape[1] % 16 == 0 else shape[1] - shape[1] % 16
-        init_image = init_image[:height, :width, :]
-        rgba_init_image = rgba_init_image[:height, :width, :]
-
-        rgba_mask = brush_canvas["layers"][0][:height, :width, :]
-        mask = rgba_mask[:,:,3]/255
-        mask = mask.astype(int)
-        
-        rgba_mask[:,:,3] = rgba_mask[:,:,3]//2
-        masked_image = Image.alpha_composite(Image.fromarray(rgba_init_image, 'RGBA'), Image.fromarray(rgba_mask, 'RGBA'))
-        mask = torch.from_numpy(mask).unsqueeze(0).unsqueeze(0).to(torch.bfloat16).to(self.device)
-        
-        seed = int(seed)
-        if seed == -1:
-            seed = torch.randint(0, 2**32, (1,)).item()
-        opts = SamplingOptions(
-            source_prompt=source_prompt,
-            target_prompt=target_prompt,
-            width=width,
-            height=height,
-            inversion_num_steps=inversion_num_steps,
-            denoise_num_steps=denoise_num_steps,
-            skip_step=skip_step,
-            inversion_guidance=inversion_guidance,
-            denoise_guidance=denoise_guidance,
-            seed=seed,
-            re_init=re_init,
-            attn_mask=attn_mask,
-            attn_scale=attn_scale
-        )
-        if self.offload:
-            
+        try:
             torch.cuda.empty_cache()
-            self.t5, self.clip = self.t5.to(self.device), self.clip.to(self.device)
             
-        torch.manual_seed(opts.seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(opts.seed)
+            # brush_canvas 검증
+            if not brush_canvas or "background" not in brush_canvas:
+                raise ValueError("Invalid brush canvas data")
+                
+            rgba_init_image = brush_canvas["background"]
+            if not isinstance(rgba_init_image, np.ndarray):
+                rgba_init_image = np.array(rgba_init_image)
+                
+            init_image = rgba_init_image[:,:,:3]
+            shape = init_image.shape        
+            height = shape[0] if shape[0] % 16 == 0 else shape[0] - shape[0] % 16
+            width = shape[1] if shape[1] % 16 == 0 else shape[1] - shape[1] % 16
+            init_image = init_image[:height, :width, :]
+            rgba_init_image = rgba_init_image[:height, :width, :]
 
-        t0 = time.perf_counter()
-
-        with torch.no_grad():
-            inp_target = prepare(self.t5, self.clip, self.init_image, prompt=opts.target_prompt)
-
-        if self.offload:
-            self.t5, self.clip = self.t5.cpu(), self.clip.cpu()
-            torch.cuda.empty_cache()
-            self.model = self.model.to(self.device)
-            
-        x = self.model.denoise(self.z0,self.zt,inp_target,mask,opts,self.info)
-        
-        if self.offload:
-            self.model.cpu()
-            torch.cuda.empty_cache()
-            self.ae.decoder.to(x.device)
-            
-        with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
-            x = self.ae.decode(x.to(self.device))
-        
-        x = x.clamp(-1, 1)
-        x = x.float().cpu()
-        x = rearrange(x[0], "c h w -> h w c")
-        
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-
-        output_name = os.path.join(self.output_dir, "img_{idx}.jpg")
-        if not os.path.exists(self.output_dir):
-            os.makedirs(self.output_dir)
-            idx = 0
-        else:
-            fns = [fn for fn in iglob(output_name.format(idx="*")) if re.search(r"img_[0-9]+\.jpg$", fn)]
-            if len(fns) > 0:
-                idx = max(int(fn.split("_")[-1].split(".")[0]) for fn in fns) + 1
+            # layers 검증
+            if "layers" not in brush_canvas or len(brush_canvas["layers"]) == 0:
+                # 기본 마스크 생성
+                rgba_mask = np.zeros((*rgba_init_image.shape[:2], 4), dtype=np.uint8)
+                mask = np.zeros((height, width), dtype=int)
             else:
-                idx = 0
-        
-        fn = output_name.format(idx=idx)
-    
-        img = Image.fromarray((127.5 * (x + 1.0)).cpu().byte().numpy())
-        exif_data = Image.Exif()
-        exif_data[ExifTags.Base.Software] = "AI generated;txt2img;flux"
-        exif_data[ExifTags.Base.Make] = "Black Forest Labs"
-        exif_data[ExifTags.Base.Model] = self.name
-    
-        exif_data[ExifTags.Base.ImageDescription] = target_prompt
-        img.save(fn, exif=exif_data, quality=95, subsampling=0)
-        masked_image.save(fn.replace(".jpg", "_mask.png"),  format='PNG')
-        t1 = time.perf_counter()
-        print(f"Done in {t1 - t0:.1f}s. Saving {fn}")
-        
-        print("End Edit")
-        return img
+                rgba_mask = brush_canvas["layers"][0][:height, :width, :]
+                if not isinstance(rgba_mask, np.ndarray):
+                    rgba_mask = np.array(rgba_mask)
+                mask = rgba_mask[:,:,3]/255
+                mask = mask.astype(int)
+            
+            rgba_mask_copy = rgba_mask.copy()
+            rgba_mask_copy[:,:,3] = rgba_mask_copy[:,:,3]//2
+            masked_image = Image.alpha_composite(
+                Image.fromarray(rgba_init_image, 'RGBA'), 
+                Image.fromarray(rgba_mask_copy, 'RGBA')
+            )
+            mask = torch.from_numpy(mask).unsqueeze(0).unsqueeze(0).to(torch.bfloat16).to(self.device)
+            
+            seed = int(seed) if seed != -1 else torch.randint(0, 2**32, (1,)).item()
+            
+            opts = SamplingOptions(
+                source_prompt=source_prompt,
+                target_prompt=target_prompt,
+                width=width,
+                height=height,
+                inversion_num_steps=int(inversion_num_steps),
+                denoise_num_steps=int(denoise_num_steps),
+                skip_step=int(skip_step),
+                inversion_guidance=float(inversion_guidance),
+                denoise_guidance=float(denoise_guidance),
+                seed=seed,
+                re_init=bool(re_init),
+                attn_mask=bool(attn_mask),
+                attn_scale=float(attn_scale)
+            )
+            
+            if self.offload:
+                torch.cuda.empty_cache()
+                self.t5, self.clip = self.t5.to(self.device), self.clip.to(self.device)
+                
+            torch.manual_seed(opts.seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(opts.seed)
 
-    
+            t0 = time.perf_counter()
+
+            with torch.no_grad():
+                inp_target = prepare(self.t5, self.clip, self.init_image, prompt=opts.target_prompt)
+
+            if self.offload:
+                self.t5, self.clip = self.t5.cpu(), self.clip.cpu()
+                torch.cuda.empty_cache()
+                self.model = self.model.to(self.device)
+                
+            x = self.model.denoise(self.z0, self.zt, inp_target, mask, opts, self.info)
+            
+            if self.offload:
+                self.model.cpu()
+                torch.cuda.empty_cache()
+                self.ae.decoder.to(x.device)
+                
+            with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
+                x = self.ae.decode(x.to(self.device))
+            
+            x = x.clamp(-1, 1)
+            x = x.float().cpu()
+            x = rearrange(x[0], "c h w -> h w c")
+            
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+
+            output_name = os.path.join(self.output_dir, "img_{idx}.jpg")
+            if not os.path.exists(self.output_dir):
+                os.makedirs(self.output_dir)
+                idx = 0
+            else:
+                fns = [fn for fn in iglob(output_name.format(idx="*")) if re.search(r"img_[0-9]+\.jpg$", fn)]
+                if len(fns) > 0:
+                    idx = max(int(fn.split("_")[-1].split(".")[0]) for fn in fns) + 1
+                else:
+                    idx = 0
+            
+            fn = output_name.format(idx=idx)
+        
+            img = Image.fromarray((127.5 * (x + 1.0)).cpu().byte().numpy())
+            exif_data = Image.Exif()
+            exif_data[ExifTags.Base.Software] = "AI generated;txt2img;flux"
+            exif_data[ExifTags.Base.Make] = "Black Forest Labs"
+            exif_data[ExifTags.Base.Model] = self.name
+        
+            exif_data[ExifTags.Base.ImageDescription] = target_prompt
+            img.save(fn, exif=exif_data, quality=95, subsampling=0)
+            masked_image.save(fn.replace(".jpg", "_mask.png"), format='PNG')
+            t1 = time.perf_counter()
+            print(f"Done in {t1 - t0:.1f}s. Saving {fn}")
+            
+            print("End Edit")
+            return img
+            
+        except Exception as e:
+            print(f"Error in edit: {e}")
+            return None
+
     @torch.inference_mode()
-    def encode(self,init_image, torch_device):
+    def encode(self, init_image, torch_device):
+        if not isinstance(init_image, np.ndarray):
+            init_image = np.array(init_image)
+            
         init_image = torch.from_numpy(init_image).permute(2, 0, 1).float() / 127.5 - 1
         init_image = init_image.unsqueeze(0) 
         init_image = init_image.to(torch_device)
@@ -258,6 +298,15 @@ class FluxEditor_kv_demo:
         return init_image
     
 def create_demo(model_name: str):
+    # args가 정의되지 않은 경우를 대비한 처리
+    if 'args' not in globals():
+        parser = argparse.ArgumentParser(description="Flux")
+        parser.add_argument("--name", type=str, default=model_name)
+        parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+        parser.add_argument("--offload", action="store_true")
+        args = parser.parse_args([])
+        args.name = model_name
+    
     editor = FluxEditor_kv_demo(args)
     is_schnell = model_name == "flux-schnell"
     
@@ -292,25 +341,23 @@ def create_demo(model_name: str):
         
         with gr.Row():
             with gr.Column():
-                source_prompt = gr.Textbox(label="Source Prompt", value='' )
+                source_prompt = gr.Textbox(label="Source Prompt", value='')
                 inversion_num_steps = gr.Slider(1, 50, 28, step=1, label="Number of inversion steps")
-                target_prompt = gr.Textbox(label="Target Prompt", value='' )
+                target_prompt = gr.Textbox(label="Target Prompt", value='')
                 denoise_num_steps = gr.Slider(1, 50, 28, step=1, label="Number of denoise steps")
                 brush_canvas = gr.ImageEditor(label="Brush Canvas",
-                                                sources=('upload'), 
-                                                brush=gr.Brush(colors=["#ff0000"],color_mode='fixed'),
+                                                sources=('upload',), 
+                                                brush=gr.Brush(colors=["#ff0000"], color_mode='fixed'),
                                                 interactive=True,
                                                 transforms=[],
                                                 container=True,
-                                                format='png',scale=1)
+                                                format='png', scale=1)
                 
                 inv_btn = gr.Button("inverse")
                 edit_btn = gr.Button("edit")
                 
-                
             with gr.Column():
                 with gr.Accordion("Advanced Options", open=True):
-
                     skip_step = gr.Slider(0, 30, 4, step=1, label="Number of skip steps")
                     inversion_guidance = gr.Slider(1.0, 10.0, 1.5, step=0.1, label="inversion Guidance", interactive=not is_schnell)
                     denoise_guidance = gr.Slider(1.0, 10.0, 5.5, step=0.1, label="denoise Guidance", interactive=not is_schnell)
@@ -320,9 +367,9 @@ def create_demo(model_name: str):
                         re_init = gr.Checkbox(label="re_init", value=False)
                         attn_mask = gr.Checkbox(label="attn_mask", value=False)
 
-                
                 output_image = gr.Image(label="Generated Image")
                 gr.Markdown(article)
+                
         inv_btn.click(
             fn=editor.inverse,
             inputs=[brush_canvas,
@@ -330,7 +377,7 @@ def create_demo(model_name: str):
                     inversion_num_steps, denoise_num_steps, 
                     skip_step, 
                     inversion_guidance,
-                    denoise_guidance,seed,
+                    denoise_guidance, seed,
                     re_init, attn_mask
                     ],
             outputs=[output_image]
@@ -342,22 +389,23 @@ def create_demo(model_name: str):
                     inversion_num_steps, denoise_num_steps, 
                     skip_step, 
                     inversion_guidance,
-                    denoise_guidance,seed,
-                    re_init, attn_mask,attn_scale
+                    denoise_guidance, seed,
+                    re_init, attn_mask, attn_scale
                     ],
             outputs=[output_image]
         )
     return demo
 
 if __name__ == "__main__":
-    class DummyArgs:
-        name = "flux-dev"
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        offload = False
-        share = True
-        port = 41032
+    import argparse
+    parser = argparse.ArgumentParser(description="Flux")
+    parser.add_argument("--name", type=str, default="flux-dev", choices=list(configs.keys()), help="Model name")
+    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device to use")
+    parser.add_argument("--offload", action="store_true", help="Offload model to CPU when not in use")
+    parser.add_argument("--share", action="store_true", help="Create a public link to your demo")
+    parser.add_argument("--port", type=int, default=41032)
+    args = parser.parse_args()
 
-    args = DummyArgs()
     demo = create_demo(args.name)
+    
     demo.launch(server_name='0.0.0.0', share=args.share, server_port=args.port)
-
