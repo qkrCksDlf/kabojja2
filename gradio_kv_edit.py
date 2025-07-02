@@ -82,8 +82,8 @@ class FluxEditor_kv_demo:
         rgba_init_image = rgba_init_image[:height, :width, :]
 
         # 수정된 부분
-        ref_image_path = ''
-        ref_mask_path = ''
+        ref_image_path = 'ref_1.png' ############################################3
+        ref_mask_path = 'ref_1_mask.png'
         ref_image = np.array(Image.open(image_path).convert("RGB"))         # (H, W, 3)
         ref_mask_np = np.array(Image.open(mask_path).convert("L"))          # (H, W)
         ref_mask = (ref_mask_np > 128).astype(np.uint8)   
@@ -166,21 +166,21 @@ class FluxEditor_kv_demo:
         
         torch.cuda.empty_cache()
         
-        rgba_init_image = brush_canvas["background"]
-        init_image = rgba_init_image[:,:,:3]
-        shape = init_image.shape        
-        height = shape[0] if shape[0] % 16 == 0 else shape[0] - shape[0] % 16
-        width = shape[1] if shape[1] % 16 == 0 else shape[1] - shape[1] % 16
-        init_image = init_image[:height, :width, :]
-        rgba_init_image = rgba_init_image[:height, :width, :]
-
-        rgba_mask = brush_canvas["layers"][0][:height, :width, :]
-        mask = rgba_mask[:,:,3]/255
-        mask = mask.astype(int)
         
-        rgba_mask[:,:,3] = rgba_mask[:,:,3]//2
-        masked_image = Image.alpha_composite(Image.fromarray(rgba_init_image, 'RGBA'), Image.fromarray(rgba_mask, 'RGBA'))
-        mask = torch.from_numpy(mask).unsqueeze(0).unsqueeze(0).to(torch.bfloat16).to(self.device)
+        ref_image_path = 'ref_1.png' #################################################3
+        ref_mask_path = 'ref_1_mask.png'
+        ref_image = np.array(Image.open(image_path).convert("RGB"))         # (H, W, 3)
+        ref_mask_np = np.array(Image.open(mask_path).convert("L"))          # (H, W)
+        ref_mask = (ref_mask_np > 128).astype(np.uint8)   
+
+        shape = ref_image.shape
+        H, W = ref_image.shape[:2]
+        H = shape[0] if shape[0] % 16 == 0 else H - (H % 16)
+        W = shape[1] if shape[1] % 16 == 0 else W - (W % 16)
+        ref_image = ref_image[:H, :W, :]
+        ref_mask = ref_mask[:H, :W]
+        ref_latent = self.encode(ref_image, self.device)
+        
         
         seed = int(seed)
         if seed == -1:
@@ -213,13 +213,14 @@ class FluxEditor_kv_demo:
 
         with torch.no_grad():
             inp_target = prepare(self.t5, self.clip, self.init_image, prompt=opts.target_prompt)
+            inp_ref = prepare(self.t5, self.clip, ref_latent, prompt=opts.target_prompt) #여기 수정함
 
         if self.offload:
             self.t5, self.clip = self.t5.cpu(), self.clip.cpu()
             torch.cuda.empty_cache()
             self.model = self.model.to(self.device)
             
-        x = self.model.denoise(self.z0_r,self.zt,inp_target,mask,opts,self.info_r) #여기 수정정
+        x = self.model.denoise(self.z0, self.z0_r,self.zt,inp_ref,ref_mask,opts,self.info) #여기 수정함
         
         if self.offload:
             self.model.cpu()
