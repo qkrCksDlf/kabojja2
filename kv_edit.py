@@ -157,7 +157,7 @@ class Flux_kv_edit(only_Flux):
         return z0,zt,info
     
     @torch.inference_mode()
-    def denoise(self,z0,zt,inp_target,mask:Tensor,opts,info):
+    def denoise(self,z0,z0_r,zt,inp_target,mask:Tensor,opts,info): #모두 레퍼런스로 넣어줌. info는 소스, z0도 소스. 
         
         h = opts.height // 8
         w = opts.width // 8
@@ -179,8 +179,8 @@ class Flux_kv_edit(only_Flux):
         if opts.re_init:
             noise = torch.randn_like(zt)
             t  = denoise_timesteps[0]
-            zt_noise = z0 *(1 - t) + noise * t
-            inp_target["img"] = zt_noise[:, mask_indices,...]
+            zt_noise = z0 _r*(1 - t) + noise * t
+            inp_target["img"] = zt_noise[:, mask_indices,...] #이 부분 수정
         else:
             img_name = str(info['t']) + '_' + 'img'
             zt = info['feature'][img_name].to(zt.device)
