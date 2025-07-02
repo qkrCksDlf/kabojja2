@@ -179,7 +179,7 @@ class Flux_kv_edit(only_Flux):
         if opts.re_init:
             noise = torch.randn_like(zt)
             t  = denoise_timesteps[0]
-            zt_noise = z0 _r*(1 - t) + noise * t
+            zt_noise = z0_r*(1 - t) + noise * t
             inp_target["img"] = zt_noise[:, mask_indices,...] #이 부분 수정
         else:
             img_name = str(info['t']) + '_' + 'img'
