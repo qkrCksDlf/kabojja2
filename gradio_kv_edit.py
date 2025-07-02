@@ -84,8 +84,8 @@ class FluxEditor_kv_demo:
         # 수정된 부분
         ref_image_path = '01.jpg' ############################################3
         ref_mask_path = 'ref_mask.jpg'
-        ref_image = np.array(Image.open(image_path).convert("RGB"))         # (H, W, 3)
-        ref_mask_np = np.array(Image.open(mask_path).convert("L"))          # (H, W)
+        ref_image = np.array(Image.open(ref_image_path).convert("RGB"))         # (H, W, 3)
+        ref_mask_np = np.array(Image.open(ref_mask_path).convert("L"))          # (H, W)
         ref_mask = (ref_mask_np > 128).astype(np.uint8)   
 
         shape = ref_image.shape
@@ -169,8 +169,8 @@ class FluxEditor_kv_demo:
         
         ref_image_path = '01.jpg' #################################################3
         ref_mask_path = 'ref_mask.jpg'
-        ref_image = np.array(Image.open(image_path).convert("RGB"))         # (H, W, 3)
-        ref_mask_np = np.array(Image.open(mask_path).convert("L"))          # (H, W)
+        ref_image = np.array(Image.open(ref_image_path).convert("RGB"))         # (H, W, 3)
+        ref_mask_np = np.array(Image.open(ref_mask_path).convert("L"))          # (H, W)
         ref_mask = (ref_mask_np > 128).astype(np.uint8)   
 
         shape = ref_image.shape
