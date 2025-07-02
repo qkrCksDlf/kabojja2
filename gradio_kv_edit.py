@@ -95,6 +95,9 @@ class FluxEditor_kv_demo:
         ref_image = ref_image[:H, :W, :]
         ref_mask = ref_mask[:H, :W]
         ref_latent = self.encode(ref_image, self.device)
+        # ref_mask를 torch.Tensor로 변환
+        ref_mask = torch.from_numpy(ref_mask).unsqueeze(0).unsqueeze(0).to(torch.bfloat16).to(self.device)
+
         #여기까지 수정함.
 
         opts = SamplingOptions(
@@ -180,6 +183,9 @@ class FluxEditor_kv_demo:
         ref_image = ref_image[:height, :width, :]
         ref_mask = ref_mask[:height, :width]
         ref_latent = self.encode(ref_image, self.device)
+        # ref_mask를 torch.Tensor로 변환
+        ref_mask = torch.from_numpy(ref_mask).unsqueeze(0).unsqueeze(0).to(torch.bfloat16).to(self.device)
+
         
         
         seed = int(seed)
