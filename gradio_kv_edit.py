@@ -307,7 +307,7 @@ def create_demo(model_name: str, args=None):
             device="cuda" if torch.cuda.is_available() else "cpu",
             offload=False
         )
-    
+    print(">>>> args:", args, type(args))
     editor = FluxEditor_kv_demo(args)
     is_schnell = model_name == "flux-schnell"
     
