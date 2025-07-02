@@ -121,7 +121,7 @@ class Flux_kv_edit(only_Flux):
     @torch.inference_mode()
     def forward(self,inp,inp_ref,mask:Tensor,opts):
         z0,zt,info = self.inverse(inp,mask,opts)
-        z0_r,_,info_r = self.inverse(inp_ref,opts)
+        z0_r,_,info_r = self.inverse(inp_ref,mask,opts)
         z0 = self.denoise(z0,z0_r,zt,inp_ref,mask,opts,info)
         return z0
     @torch.inference_mode()
