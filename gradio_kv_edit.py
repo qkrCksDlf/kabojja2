@@ -174,11 +174,11 @@ class FluxEditor_kv_demo:
         ref_mask = (ref_mask_np > 128).astype(np.uint8)   
 
         shape = ref_image.shape
-        H, W = ref_image.shape[:2]
-        H = shape[0] if shape[0] % 16 == 0 else H - (H % 16)
-        W = shape[1] if shape[1] % 16 == 0 else W - (W % 16)
-        ref_image = ref_image[:H, :W, :]
-        ref_mask = ref_mask[:H, :W]
+        height, width = ref_image.shape[:2]
+        height = shape[0] if shape[0] % 16 == 0 else height - (height % 16)
+        width = shape[1] if shape[1] % 16 == 0 else width - (width % 16)
+        ref_image = ref_image[:height, :width, :]
+        ref_mask = ref_mask[:height, :width]
         ref_latent = self.encode(ref_image, self.device)
         
         
