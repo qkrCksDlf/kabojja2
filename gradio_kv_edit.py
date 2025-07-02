@@ -305,7 +305,8 @@ def create_demo(model_name: str, args=None):
         args = SimpleNamespace(
             name=model_name,
             device="cuda" if torch.cuda.is_available() else "cpu",
-            offload=False
+            offload=False,
+            share=True
         )
     print(">>>> args:", args, type(args))
     editor = FluxEditor_kv_demo(args)
