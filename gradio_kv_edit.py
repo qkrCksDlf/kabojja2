@@ -170,21 +170,37 @@ class FluxEditor_kv_demo:
         torch.cuda.empty_cache()
         
         
-        ref_image_path = '01.jpg' #################################################3
+        ref_image_path = '01.jpg'
         ref_mask_path = 'ref_mask.jpg'
+        
+        # 1. 이미지 및 마스크 로드
         ref_image = np.array(Image.open(ref_image_path).convert("RGB"))         # (H, W, 3)
         ref_mask_np = np.array(Image.open(ref_mask_path).convert("L"))          # (H, W)
-        ref_mask = (ref_mask_np > 128).astype(np.uint8)   
-
+        ref_mask_bin = (ref_mask_np > 128).astype(np.uint8)                     # (H, W)
+        
+        # 2. shape 보정
         shape = ref_image.shape
         height, width = ref_image.shape[:2]
         height = shape[0] if shape[0] % 16 == 0 else height - (height % 16)
         width = shape[1] if shape[1] % 16 == 0 else width - (width % 16)
         ref_image = ref_image[:height, :width, :]
-        ref_mask = ref_mask[:height, :width]
+        ref_mask_bin = ref_mask_bin[:height, :width]
+        
+        # 3. RGBA 마스크 생성 (투명도 반영)
+        rgba_ref_image = np.concatenate([ref_image, 255 * np.ones_like(ref_mask_bin[..., None])], axis=-1).astype(np.uint8)
+        rgba_ref_mask = np.zeros_like(rgba_ref_image, dtype=np.uint8)
+        rgba_ref_mask[..., 3] = ref_mask_bin * 128  # alpha 채널만 넣고, 반투명
+        
+        # 4. 마스킹된 이미지 생성
+        masked_image = Image.alpha_composite(
+            Image.fromarray(rgba_ref_image, 'RGBA'),
+            Image.fromarray(rgba_ref_mask, 'RGBA')
+        )
+        
+        # 5. latent 및 tensor 변환
         ref_latent = self.encode(ref_image, self.device)
-        # ref_mask를 torch.Tensor로 변환
-        ref_mask = torch.from_numpy(ref_mask).unsqueeze(0).unsqueeze(0).to(torch.bfloat16).to(self.device)
+        ref_mask = torch.from_numpy(ref_mask_bin).unsqueeze(0).unsqueeze(0).to(torch.bfloat16).to(self.device)
+
 
         
         
