@@ -82,7 +82,7 @@ class FluxEditor_kv_demo:
         rgba_init_image = rgba_init_image[:height, :width, :]
 
         # 수정된 부분
-        ref_image_path = '01.jpg' ############################################3
+        ref_image_path = '011.png' ############################################3
         ref_mask_path = 'ref_mask.jpg'
         ref_image = np.array(Image.open(ref_image_path).convert("RGB"))         # (H, W, 3)
         ref_mask_np = np.array(Image.open(ref_mask_path).convert("L"))          # (H, W)
@@ -170,7 +170,7 @@ class FluxEditor_kv_demo:
         torch.cuda.empty_cache()
         
         
-        ref_image_path = '01.jpg'
+        ref_image_path = '011.png'##############################################
         ref_mask_path = 'ref_mask.jpg'
         
         # 1. 이미지 및 마스크 로드
