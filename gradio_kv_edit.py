@@ -82,6 +82,8 @@ class FluxEditor_kv_demo:
         rgba_init_image = rgba_init_image[:height, :width, :]
 
         # 수정된 부분
+        ref_image_path = ''
+        ref_mask_path = ''
         ref_image = np.array(Image.open(image_path).convert("RGB"))         # (H, W, 3)
         ref_mask_np = np.array(Image.open(mask_path).convert("L"))          # (H, W)
         ref_mask = (ref_mask_np > 128).astype(np.uint8)   
@@ -217,7 +219,7 @@ class FluxEditor_kv_demo:
             torch.cuda.empty_cache()
             self.model = self.model.to(self.device)
             
-        x = self.model.denoise(self.z0,self.zt,inp_target,mask,opts,self.info)
+        x = self.model.denoise(self.z0_r,self.zt,inp_target,mask,opts,self.info_r) #여기 수정정
         
         if self.offload:
             self.model.cpu()
