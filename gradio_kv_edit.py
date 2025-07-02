@@ -81,6 +81,20 @@ class FluxEditor_kv_demo:
         init_image = init_image[:height, :width, :]
         rgba_init_image = rgba_init_image[:height, :width, :]
 
+        # 수정된 부분
+        ref_image = np.array(Image.open(image_path).convert("RGB"))         # (H, W, 3)
+        ref_mask_np = np.array(Image.open(mask_path).convert("L"))          # (H, W)
+        ref_mask = (ref_mask_np > 128).astype(np.uint8)   
+
+        shape = ref_image.shape
+        H, W = ref_image.shape[:2]
+        H = shape[0] if shape[0] % 16 == 0 else H - (H % 16)
+        W = shape[1] if shape[1] % 16 == 0 else W - (W % 16)
+        ref_image = ref_image[:H, :W, :]
+        ref_mask = ref_mask[:H, :W]
+        ref_latent = self.encode(ref_image, self.device)
+        #여기까지 수정함.
+
         opts = SamplingOptions(
             source_prompt=source_prompt,
             target_prompt=target_prompt,
@@ -120,12 +134,14 @@ class FluxEditor_kv_demo:
 
         with torch.no_grad():
             inp = prepare(self.t5, self.clip,self.init_image, prompt=opts.source_prompt)
+            inp2 = prepare(self.t5, self.clip,ref_latent, prompt=opts.target_prompt) #추가한 부분
         
         if self.offload:
             self.t5, self.clip = self.t5.cpu(), self.clip.cpu()
             torch.cuda.empty_cache()
             self.model = self.model.to(self.device)
         self.z0,self.zt,self.info = self.model.inverse(inp,mask,opts)
+        self.z0_r,self.zt_r,self.info_r = self.model.inverse(inp2,ref_mask,opts) #추가한 부분
         
         if self.offload:
             self.model.cpu()
