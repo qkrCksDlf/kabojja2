@@ -297,15 +297,15 @@ class FluxEditor_kv_demo:
         init_image = self.ae.encode(init_image).to(torch.bfloat16)
         return init_image
     
-def create_demo(model_name: str):
-    # args가 정의되지 않은 경우를 대비한 처리
-    if 'args' not in globals():
-        parser = argparse.ArgumentParser(description="Flux")
-        parser.add_argument("--name", type=str, default=model_name)
-        parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
-        parser.add_argument("--offload", action="store_true")
-        args = parser.parse_args([])
-        args.name = model_name
+def create_demo(model_name: str, args=None):
+    # args가 전달되지 않은 경우 기본값으로 생성
+    if args is None:
+        class DefaultArgs:
+            def __init__(self):
+                self.name = model_name
+                self.device = "cuda" if torch.cuda.is_available() else "cpu"
+                self.offload = False
+        args = DefaultArgs()
     
     editor = FluxEditor_kv_demo(args)
     is_schnell = model_name == "flux-schnell"
@@ -406,6 +406,6 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=41032)
     args = parser.parse_args()
 
-    demo = create_demo(args.name)
+    demo = create_demo(args.name, args)
     
     demo.launch(server_name='0.0.0.0', share=args.share, server_port=args.port)
