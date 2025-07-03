@@ -13,7 +13,6 @@ from flux.sampling import prepare, denoise, get_schedule
 from flux.util import (configs, load_ae, load_clip, load_t5)
 from models.kv_edit import Flux_kv_edit
 from diffusers import FluxPipeline #추가한 부분
-from diffusers import Flux
 #from torchvision.transforms.functional import to_pil_image
 
 @dataclass
@@ -166,6 +165,7 @@ class FluxEditor_kv_demo:
         )
         # 이부분이 그 부분이야!
         pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16)
+        pipe.enable_model_cpu_offload()
         device = "cuda" if torch.cuda.is_available() else "cpu"
         pipe = pipe.to(device)
         
