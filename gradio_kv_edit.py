@@ -168,6 +168,21 @@ class FluxEditor_kv_demo:
              ):
         
         torch.cuda.empty_cache()
+        rgba_init_image = brush_canvas["background"]
+        init_image = rgba_init_image[:,:,:3]
+        shape = init_image.shape        
+        height = shape[0] if shape[0] % 16 == 0 else shape[0] - shape[0] % 16
+        width = shape[1] if shape[1] % 16 == 0 else shape[1] - shape[1] % 16
+        init_image = init_image[:height, :width, :]
+        rgba_init_image = rgba_init_image[:height, :width, :]
+
+        rgba_mask = brush_canvas["layers"][0][:height, :width, :]
+        mask = rgba_mask[:,:,3]/255
+        mask = mask.astype(int)
+        
+        rgba_mask[:,:,3] = rgba_mask[:,:,3]//2
+        masked_image = Image.alpha_composite(Image.fromarray(rgba_init_image, 'RGBA'), Image.fromarray(rgba_mask, 'RGBA'))
+        mask = torch.from_numpy(mask).unsqueeze(0).unsqueeze(0).to(torch.bfloat16).to(self.device)
         
         
         ref_image_path = '011.png'##############################################
