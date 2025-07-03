@@ -12,8 +12,8 @@ import numpy as np
 from flux.sampling import prepare, denoise, get_schedule
 from flux.util import (configs, load_ae, load_clip, load_t5)
 from models.kv_edit import Flux_kv_edit
-from flux.model import Flux
-from torchvision.transforms.functional import to_pil_image
+from diffusers import FluxPipeline #추가한 부분
+#from torchvision.transforms.functional import to_pil_image
 
 @dataclass
 class SamplingOptions:
@@ -164,7 +164,9 @@ class FluxEditor_kv_demo:
             shift=True
         )
         # 이부분이 그 부분이야!
-        k = denoise(Flux,self.zt_r,inp2["img_ids"],inp2["txt"],inp2["txt_ids"],inp2["vec"],timesteps)
+        pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16)
+        flux_model = pipe.flux  # <- 핵심
+        k = denoise(flux_model,self.zt_r,inp2["img_ids"],inp2["txt"],inp2["txt_ids"],inp2["vec"],timesteps)
 
         with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
             decoded  = self.ae.decode(k.to(self.device))
@@ -173,8 +175,8 @@ class FluxEditor_kv_demo:
         img_tensor = img_tensor.clamp(0, 1)  # clipping just in case
 
         # PIL 이미지로 변환 후 저장
-        img = to_pil_image(img_tensor)
-        img.save("result.png")
+        # img = to_pil_image(img_tensor)
+        # img.save("result.png")
         print(f"inversion Done in {t1 - t0:.1f}s.")
         #########
 
