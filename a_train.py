@@ -165,7 +165,7 @@ class FluxEditor_kv_demo:
         )
         # 이부분이 그 부분이야!
         pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16)
-        flux_model = pipe.flux  # <- 핵심
+        flux_model = pipe.unet  # <- 핵심
         k = denoise(flux_model,self.zt_r,inp2["img_ids"],inp2["txt"],inp2["txt_ids"],inp2["vec"],timesteps)
 
         with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16):
