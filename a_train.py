@@ -168,7 +168,7 @@ class FluxEditor_kv_demo:
         pipe.enable_model_cpu_offload()
         
         denoising_strength = 0.8
-        generator = torch.Generator(device=device).manual_seed(1234)
+        #generator = torch.Generator(device=device).manual_seed(1234)
         
         out = pipe(
     prompt=opts.target_prompt,
@@ -177,7 +177,7 @@ class FluxEditor_kv_demo:
     height=256,
     width=256,
     num_inference_steps=27,
-    generator=generator
+    
 ).images[0]
         out.save("image.png")
         
