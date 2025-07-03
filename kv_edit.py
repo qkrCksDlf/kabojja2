@@ -158,7 +158,7 @@ class Flux_kv_edit(only_Flux):
         return z0,zt,info
     
     @torch.inference_mode()
-    def denoise(self,z0,z0_r,zt,inp_target,mask:Tensor,opts,info): #모두 레퍼런스로 넣어줌. info는 소스, z0도 소스. 
+    def denoise(self,z0,z0_r,zt_r,inp_target,mask:Tensor,opts,info): #모두 레퍼런스로 넣어줌. info는 소스, z0도 소스. 
         
         h = opts.height // 8
         w = opts.width // 8
@@ -185,7 +185,7 @@ class Flux_kv_edit(only_Flux):
         else:
             img_name = str(info['t']) + '_' + 'img'
             zt = info['feature'][img_name].to(zt.device)
-            inp_target["img"] = zt[:, mask_indices,...]
+            inp_target["img"] = zt_r[:, mask_indices,...]
             
         if opts.attn_scale != 0 and (~bool_mask).any():
             attention_scale = self.create_attention_scale(L+512, mask_indices, device=mask.device,scale = opts.attn_scale)
