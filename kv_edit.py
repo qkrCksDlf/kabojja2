@@ -121,8 +121,8 @@ class Flux_kv_edit(only_Flux):
     @torch.inference_mode()
     def forward(self,inp,inp_ref,mask:Tensor,opts):
         z0,zt,info = self.inverse(inp,mask,opts)
-        z0_r,_,info_r = self.inverse(inp_ref,mask,opts)
-        z0 = self.denoise(z0,z0_r,zt,inp_ref,mask,opts,info)
+        z0_r,zt_r,info_r = self.inverse(inp_ref,mask,opts)
+        z0 = self.denoise(z0,z0_r,zt_r,inp_ref,mask,opts,info)
         return z0
     @torch.inference_mode()
     def inverse(self,inp,mask,opts):
@@ -178,13 +178,13 @@ class Flux_kv_edit(only_Flux):
        
         mask_indices = info['mask_indices']
         if opts.re_init:
-            noise = torch.randn_like(zt)
+            noise = torch.randn_like(zt_r)
             t  = denoise_timesteps[0]
             zt_noise = z0_r*(1 - t) + noise * t
             inp_target["img"] = zt_noise[:, mask_indices,...] #이 부분 수정
         else:
             img_name = str(info['t']) + '_' + 'img'
-            zt = info['feature'][img_name].to(zt.device)
+            zt = info['feature'][img_name].to(zt_r.device)
             inp_target["img"] = zt_r[:, mask_indices,...]
             
         if opts.attn_scale != 0 and (~bool_mask).any():
