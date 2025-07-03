@@ -242,7 +242,7 @@ class FluxEditor_kv_demo:
             torch.cuda.empty_cache()
             self.model = self.model.to(self.device)
             
-        x = self.model.denoise(self.z0, self.z0_r,self.zt,inp_ref,ref_mask,opts,self.info) #여기 수정함
+        x = self.model.denoise(self.z0, self.z0_r,self.zt,inp_ref,mask,opts,self.info) #여기 수정함
         
         if self.offload:
             self.model.cpu()
