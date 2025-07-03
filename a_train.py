@@ -164,7 +164,7 @@ class FluxEditor_kv_demo:
             shift=True
         )
         # 이부분이 그 부분이야!
-        pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16)
+        pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, use_safetensors=True)
         pipe.enable_model_cpu_offload()
         device = "cuda" if torch.cuda.is_available() else "cpu"
         pipe = pipe.to(device)
@@ -176,9 +176,9 @@ class FluxEditor_kv_demo:
     prompt=opts.target_prompt,
     latent=self.zt_r,
     guidance_scale=3.5,
-    height=768,
-    width=1360,
-    num_inference_steps=50,
+    height=512,
+    width=512,
+    num_inference_steps=28,
     generator=generator
 ).images[0]
         out.save("image.png")
