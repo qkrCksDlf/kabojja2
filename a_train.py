@@ -172,7 +172,7 @@ class FluxEditor_kv_demo:
         
         out = pipe(
     prompt=opts.target_prompt,
-    latent=self.zt_r,
+    latents=self.zt_r,
     guidance_scale=3.5,
     height=256,
     width=256,
