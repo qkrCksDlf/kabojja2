@@ -150,6 +150,47 @@ class FluxEditor_kv_demo:
             self.model = self.model.to(self.device)
         self.z0, self.zt, self.info = self.model.inverse(inp, mask, opts)
         self.z0_r, self.zt_r, self.info_r = self.model.inverse(inp2, ref_mask, opts)  # 추가한 부분
+                # === 디노이징 → 디코딩 → 이미지 저장 ===
+        # inp2로부터 디노이징 조건 구성
+        img_ids = inp2["img_ids"]            # (B, T_img)
+        txt = inp2["txt"]                    # (B, T_txt, ctx_dim)
+        txt_ids = inp2["txt_ids"]            # (B, T_txt)
+        timesteps_tensor = torch.tensor([0.0], device=self.device)  # 디노이징 마지막 단계로 간주
+        y = inp2["y"]                        # (B, vec_in_dim)
+        guidance = (
+            torch.tensor([opts.denoise_guidance], device=self.device)
+            if self.model.params.guidance_embed else None
+        )
+
+        # forward: Flux 모델 디노이징 수행
+        with torch.no_grad():
+            z_denoised = self.model(
+                img=self.zt_r,              # (B, T, in_channels)
+                img_ids=img_ids,
+                txt=txt,
+                txt_ids=txt_ids,
+                timesteps=timesteps_tensor,
+                y=y,
+                guidance=guidance
+            )  # → shape: (B, T, patch**2 * out_channels)
+
+        # decode to image
+        if self.offload:
+            self.ae = self.ae.to(self.device)
+
+        img_tensor = self.ae.decode(z_denoised)  # shape: (B, C, H, W)
+        img_tensor = torch.clamp(img_tensor, 0, 1)
+
+        # 저장
+        from torchvision.utils import save_image
+        save_image(img_tensor, "out_denoised.png")
+
+        if self.offload:
+            self.ae = self.ae.cpu()
+            torch.cuda.empty_cache()
+
+        print("디노이징 및 이미지 저장 완료: out_denoised.png")
+
 
         if self.offload:
             self.model.cpu()
@@ -164,22 +205,22 @@ class FluxEditor_kv_demo:
             shift=True
         )
         # 이부분이 그 부분이야!
-        pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, use_safetensors=True)
-        pipe.enable_model_cpu_offload()
+#         pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, use_safetensors=True)
+#         pipe.enable_model_cpu_offload()
         
-        denoising_strength = 0.8
-        #generator = torch.Generator(device=device).manual_seed(1234)
+#         denoising_strength = 0.8
+#         #generator = torch.Generator(device=device).manual_seed(1234)
         
-        out = pipe(
-    prompt=opts.target_prompt,
-    latents=self.zt_r,
-    guidance_scale=3.5,
-    height=256,
-    width=256,
-    num_inference_steps=27,
+#         out = pipe(
+#     prompt=opts.target_prompt,
+#     latents=self.zt_r,
+#     guidance_scale=3.5,
+#     height=256,
+#     width=256,
+#     num_inference_steps=27,
     
-).images[0]
-        out.save("image.png")
+# ).images[0]
+#         out.save("image.png")
         
 
 
