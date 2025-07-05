@@ -9,5 +9,7 @@ pip install einops fire gradio==5.17.1 huggingface-hub invisible-watermark matpl
 ```
 
 ```
-https://github.com/kgw8803/KVEdit/blob/main/cli_invert_target.py
+python cli_invert_target.py \
+  --target_image blue_dog.png \
+  --mask path/to/ref_mask1111.jpg 
 ```
