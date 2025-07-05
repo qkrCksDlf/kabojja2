@@ -18,8 +18,7 @@ from flux.util import load_flow_model
 from flux.sampling import get_schedule
 from flux.sampling import denoise
 from flux.sampling import unpack
-flux_model = load_flow_model(self.name, device=self.device)  # load Flux (non-KV) on the same device
-flux_model.eval()
+
 
 @dataclass
 class SamplingOptions:
@@ -163,6 +162,8 @@ class FluxEditor_kv_demo:
         t1 = time.perf_counter()
 
         #inversion 디노이징을 위해 추가한 코드
+        flux_model = load_flow_model(self.name, device=self.device)  # load Flux (non-KV) on the same device
+        flux_model.eval()
         timesteps = get_schedule(opts.denoise_num_steps, self.zt.shape[1],
                          shift=(self.name != "flux-schnell"))
         timesteps = timesteps[opts.skip_step:]  # apply any skip-step offset (usually 0)
