@@ -191,7 +191,7 @@ class FluxEditor_kv_demo:
             decoded = self.ae.decode(latents.to(self.device))
         
         # Post-process to uint8 image
-        decoded = decoded.clamp(-1, 1).cpu().detach().numpy()[0]
+        decoded = decoded.clamp(-1, 1).to(torch.float16).cpu().detach().numpy()[0]
         decoded = ((decoded + 1) * 127.5).astype(np.uint8)  # map from [-1,1] to [0,255]
         decoded = decoded.transpose(1, 2, 0)  # (C,H,W) to (H,W,C)
         
