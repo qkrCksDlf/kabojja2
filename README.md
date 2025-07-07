@@ -13,3 +13,15 @@ python cli_invert_target.py \
   --target_image blue_dog.png \
   --mask ref_mask1111.jpg 
 ```
+
+
+
+```
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+```
+```
+!pip install timm diffusers transformers accelerate pandas numpy Pillow tqdm opencv-python-headless
+```
+```
+!pip install controlnet_aux open_clip_torch xformers
+```
