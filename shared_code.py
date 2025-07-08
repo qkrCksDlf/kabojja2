@@ -19,7 +19,7 @@ warnings.filterwarnings('ignore')
 CFG = {
     'DRIVE_PATH': '/content/drive/MyDrive/INHACHALLANGE/Data', # ⚠️ 본인 데이터 경로에 맞게 수정
     'SUB_DIR': './submission',
-    'ENSEMBLE_SEEDS': [42, 123, 1024] # 앙상블에 사용할 시드 리스트
+    'ENSEMBLE_SEEDS': [43, 124, 1025] # 앙상블에 사용할 시드 리스트
 }
 
 def seed_everything(seed):
@@ -164,7 +164,7 @@ def preprocess_caption(caption: str) -> str:
 # 4. 메인 로직 (앙상블 적용)
 
 # 데이터 로드
-test_df = pd.read_csv(os.path.join(CFG['DRIVE_PATH'], 'test.csv'))
+test_df = pd.read_csv('test.csv')
 test_df['input_img_path'] = test_df['ID'].apply(
     lambda x: os.path.join(CFG['DRIVE_PATH'], f'test/input_image/{x}.png')
 )
