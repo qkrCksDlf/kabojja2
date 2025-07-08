@@ -166,7 +166,7 @@ def preprocess_caption(caption: str) -> str:
 # 데이터 로드
 test_df = pd.read_csv('test.csv')
 test_df['input_img_path'] = test_df['ID'].apply(
-    lambda x: os.path.join(CFG['DRIVE_PATH'], f'test/input_image/{x}.png')
+    lambda x: f'test/input_image/{x}.png'
 )
 
 all_seed_embeddings = [] # 각 시드별 결과 임베딩을 저장할 리스트
