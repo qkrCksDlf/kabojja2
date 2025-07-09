@@ -25,3 +25,12 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 ```
 !pip install controlnet_aux open_clip_torch xformers
 ```
+
+
+```
+python cli_kv_edit.py \
+    --input_image "$INPUT_IMAGE" \
+    --mask_image "$MASK_IMAGE" \
+    --source_prompt "$SOURCE_PROMPT" \
+    --target_prompt "$TARGET_PROMPT" 
+```
