@@ -83,7 +83,7 @@ class FluxEditor_kv_demo:
 
         # 수정된 부분
         ref_image_path = '011.png' ############################################3
-        ref_mask_path = 'ref_mask.jpg'
+        ref_mask_path = 'ref_mask2.jpg'
         ref_image = np.array(Image.open(ref_image_path).convert("RGB"))         # (H, W, 3)
         ref_mask_np = np.array(Image.open(ref_mask_path).convert("L"))          # (H, W)
         ref_mask = (ref_mask_np > 128).astype(np.uint8)   
