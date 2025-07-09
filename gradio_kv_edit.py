@@ -186,7 +186,7 @@ class FluxEditor_kv_demo:
         
         
         ref_image_path = '011.png'##############################################
-        ref_mask_path = 'ref_mask.jpg'
+        ref_mask_path = 'ref_mask2.jpg'
         
         # 1. 이미지 및 마스크 로드
         ref_image = np.array(Image.open(ref_image_path).convert("RGB"))         # (H, W, 3)
