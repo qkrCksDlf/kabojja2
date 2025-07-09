@@ -31,7 +31,7 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 python cli_kv_edit.py \
     --input_image "blue_dog.png" \
     --mask_image "ref_mask1111.jpg" \
-    --source_prompt "a cat is lying on the floor" \
+    --source_prompt "a dog is lying on the floor" \
     --target_prompt "a dog is lying on the floor"
 
 ```
