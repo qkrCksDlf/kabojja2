@@ -206,7 +206,7 @@ class FluxEditor_CLI:
         return z0, zt, info
 
     @torch.inference_mode()
-    def edit(self, z0, zt, info, init_image, mask, opts):
+    def edit(self, z0, zt, info, z0_r, zt_r, info_r, init_image, ref_image, mask, opts):
         """
         Perform image editing using the inverted latents
         
@@ -238,7 +238,8 @@ class FluxEditor_CLI:
 
         with torch.no_grad():
             inp_target = prepare(self.t5, self.clip, init_image, prompt=opts.target_prompt)
-            x = self.model.denoise(z0.clone(), zt, inp_target, mask, opts, info)
+            inp_target2 = prepare(self.t5, self.clip, ref_image, prompt=opts.target_prompt)
+            x = self.model.denoise(z0.clone(),z0_r, zt_r, inp_target2, mask, opts, info) #마스크는 ref마스크
             
         with torch.autocast(device_type=self.device[1].type, dtype=torch.bfloat16):
             x = self.ae.decode(x.to(self.device[1]))
@@ -315,6 +316,9 @@ class FluxEditor_CLI:
                 self.args.input_image, self.args.mask_image
             )
             
+            ref_image, mask2, height, width = self.load_and_prepare_images(
+                self.args.ref_image, self.args.ref_mask)
+            
             # Override width/height if specified
             if self.args.width > 0:
                 width = self.args.width
@@ -344,12 +348,14 @@ class FluxEditor_CLI:
             
             # Encode input image
             encoded_image = self.encode(init_image, self.device[1]).to(self.device[0])
+            encoded_image2 = self.encode(ref_image, self.device[1]).to(self.device[0])
             
             # Perform inversion
             z0, zt, info = self.inverse(encoded_image, mask if opts.attn_mask else None, opts)
+            z0_r, zt_r, info_r = self.inverse(encoded_image2, mask2 if opts.attn_mask else None, opts)
             
             # Perform editing
-            edited_image = self.edit(z0, zt, info, encoded_image, mask, opts)
+            edited_image = self.edit(z0, zt, info,z0_r,zt_r,info_r, encoded_image, encoded_image2, mask2, opts)
             
             # Save results
             output_path = self.save_result(edited_image, opts, self.args.mask_image)
@@ -381,6 +387,18 @@ def main():
         type=str, 
         required=True,
         help="Path to the mask image (white/bright areas will be edited, black/dark areas preserved)"
+    )
+    parser.add_argument(
+        "--ref_image", 
+        type=str, 
+        required=True,
+        help="Path to the ref image (white/bright areas will be edited, black/dark areas preserved)"
+    )
+    parser.add_argument(
+        "--ref_mask", 
+        type=str, 
+        required=True,
+        help="Path to the ref mask (white/bright areas will be edited, black/dark areas preserved)"
     )
     parser.add_argument(
         "--source_prompt", 
