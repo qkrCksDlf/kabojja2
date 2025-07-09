@@ -317,7 +317,7 @@ class FluxEditor_CLI:
             )
             
             ref_image, mask2, height, width = self.load_and_prepare_images(
-                "011.png", "ref_mask2.jpg)
+                "011.png", "ref_mask2.jpg")
             
             # Override width/height if specified
             if self.args.width > 0:
