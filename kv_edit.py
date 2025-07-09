@@ -150,6 +150,10 @@ class Flux_kv_edit(only_Flux):
         
         denoise_timesteps = get_schedule(opts.denoise_num_steps, inp["img"].shape[1], shift=(self.name != "flux-schnell"))
         denoise_timesteps = denoise_timesteps[opts.skip_step:]
+
+        #time step 재정의
+        tx = 0.6
+        denoise_timesteps = torch.linspace(tx, 0.0, 24 + 1).tolist() #skip_step포함한것.
         
         # 加噪过程
         z0 = inp["img"].clone()        
@@ -175,6 +179,10 @@ class Flux_kv_edit(only_Flux):
         
         denoise_timesteps = get_schedule(opts.denoise_num_steps, inp_target["img"].shape[1], shift=(self.name != "flux-schnell"))
         denoise_timesteps = denoise_timesteps[opts.skip_step:]
+
+        #time step 재정의
+        tx = 0.6
+        denoise_timesteps = torch.linspace(tx, 0.0, 24 + 1).tolist() #skip_step포함한것.
        
         mask_indices = info['mask_indices']
         if opts.re_init:
