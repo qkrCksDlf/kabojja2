@@ -317,7 +317,7 @@ class FluxEditor_CLI:
             )
             
             ref_image, mask2, height, width = self.load_and_prepare_images(
-                self.args.ref_image, self.args.ref_mask)
+                "011.png", "ref_mask2.jpg)
             
             # Override width/height if specified
             if self.args.width > 0:
@@ -387,18 +387,6 @@ def main():
         type=str, 
         required=True,
         help="Path to the mask image (white/bright areas will be edited, black/dark areas preserved)"
-    )
-    parser.add_argument(
-        "--ref_image", 
-        type=str, 
-        required=True,
-        help="Path to the ref image (white/bright areas will be edited, black/dark areas preserved)"
-    )
-    parser.add_argument(
-        "--ref_mask", 
-        type=str, 
-        required=True,
-        help="Path to the ref mask (white/bright areas will be edited, black/dark areas preserved)"
     )
     parser.add_argument(
         "--source_prompt", 
