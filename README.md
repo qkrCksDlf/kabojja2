@@ -29,8 +29,8 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 
 ```
 python cli_kv_edit.py \
-    --input_image "003.jpg" \
-    --mask_image "ref_mask3.jpg" \
+    --input_image "001.jpg" \
+    --mask_image "ref_mask1111.jpg" \
     --source_prompt "a bag is on the floor" \
     --target_prompt "a dog is on the floor" \
     --re_init
