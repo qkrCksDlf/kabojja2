@@ -239,7 +239,7 @@ class FluxEditor_CLI:
         with torch.no_grad():
             inp_target = prepare(self.t5, self.clip, init_image, prompt=opts.target_prompt)
             inp_target2 = prepare(self.t5, self.clip, ref_image, prompt=opts.target_prompt)
-            x = self.model.denoise(z0.clone(),z0_r, zt_r, inp_target2, mask, opts, info) #마스크는 ref마스크
+            x = self.model.denoise(z0.clone(),z0_r, zt_r, inp_target2, mask2, opts, info) #마스크는 ref마스크
             
         with torch.autocast(device_type=self.device[1].type, dtype=torch.bfloat16):
             x = self.ae.decode(x.to(self.device[1]))
