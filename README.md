@@ -34,7 +34,6 @@ python cli_kv_edit.py \
     --ref_image "011.png" \
     --ref_mask "ref_mask2.jpg" \
     --source_prompt "a dog is lying on the floor" \
-    --target_prompt  "a dog is lying on the floor" \
-    
+    --target_prompt  "a dog is lying on the floor" \    
     --re_init 
 ```
