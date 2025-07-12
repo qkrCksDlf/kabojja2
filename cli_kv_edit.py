@@ -175,7 +175,7 @@ class FluxEditor_CLI:
         return init_image
 
     @torch.inference_mode()
-    def inverse(self, init_image, mask, opts):
+    def inverse(self, init_image, mask, opts, sot=True):
         """
         Perform DDIM inversion on the input image
         
@@ -197,8 +197,13 @@ class FluxEditor_CLI:
         t0 = time.perf_counter()
         
         with torch.no_grad():
-            inp = prepare(self.t5, self.clip, init_image, prompt=opts.source_prompt)
-            z0, zt, info = self.model.inverse(inp, mask, opts)
+            if sor:
+                inp = prepare(self.t5, self.clip, init_image, prompt=opts.source_prompt)
+                z0, zt, info = self.model.inverse(inp, mask, opts)
+            else:                
+                inp = prepare(self.t5, self.clip, init_image, prompt=opts.target_prompt)
+                z0, zt, info = self.model.inverse(inp, mask, opts)
+                
             
         t1 = time.perf_counter()
         print(f"Inversion completed in {t1 - t0:.1f}s")
@@ -237,9 +242,11 @@ class FluxEditor_CLI:
         t0 = time.perf_counter()
 
         with torch.no_grad():
-            inp_target = prepare(self.t5, self.clip, init_image, prompt=opts.target_prompt)
+            inp_target = prepare(self.t5, self.clip, init_image, prompt=opts.source_prompt)
             inp_target2 = prepare(self.t5, self.clip, ref_image, prompt=opts.target_prompt)
-            x = self.model.denoise(z0.clone(),z0_r, zt_r, inp_target2, mask2, opts, info) #마스크는 ref마스크
+            
+            x = self.model.denoise(z0.clone(),z0_r, zt_r, inp_target2, mask, opts, info)
+            # z0->소스, z0_r->레퍼런스, zt_r->레퍼런스, inp_target2->레퍼런스, mask->소스*, opts, info->소스  
             
         with torch.autocast(device_type=self.device[1].type, dtype=torch.bfloat16):
             x = self.ae.decode(x.to(self.device[1]))
@@ -352,10 +359,10 @@ class FluxEditor_CLI:
             
             # Perform inversion
             z0, zt, info = self.inverse(encoded_image, mask if opts.attn_mask else None, opts)
-            z0_r, zt_r, info_r = self.inverse(encoded_image2, mask2 if opts.attn_mask else None, opts)
+            z0_r, zt_r, info_r = self.inverse(encoded_image2, mask2 if opts.attn_mask else None, opts, False)
             
             # Perform editing
-            edited_image = self.edit(z0, zt, info,z0_r,zt_r,info_r, encoded_image, encoded_image2, mask2, opts)
+            edited_image = self.edit(z0, zt, info, z0_r, zt_r, info_r, encoded_image, encoded_image2, mask2, opts)
             
             # Save results
             output_path = self.save_result(edited_image, opts, self.args.mask_image)
