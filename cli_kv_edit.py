@@ -154,6 +154,67 @@ class FluxEditor_CLI:
         
         return init_image, mask, height, width
 
+    def load_and_prepare_images_u(self, input_image_path, mask_image_path1, mask_image_path2):
+        """
+        Load and prepare input image and union of two masks
+        
+        Args:
+            input_image_path: Path to input image
+            mask_image_path1: Path to first mask image
+            mask_image_path2: Path to second mask image
+            
+        Returns:
+            tuple: (processed_image, union_mask_tensor, height, width)
+        """
+    
+        # Load input image
+        if not os.path.exists(input_image_path):
+            raise FileNotFoundError(f"Input image not found: {input_image_path}")
+        
+        init_image = Image.open(input_image_path).convert('RGB')
+        init_image = np.array(init_image)
+        
+        # Load mask 1
+        if not os.path.exists(mask_image_path1):
+            raise FileNotFoundError(f"Mask image not found: {mask_image_path1}")
+        mask1 = Image.open(mask_image_path1).convert('L')
+        mask1 = np.array(mask1)
+        
+        # Load mask 2
+        if not os.path.exists(mask_image_path2):
+            raise FileNotFoundError(f"Mask image not found: {mask_image_path2}")
+        mask2 = Image.open(mask_image_path2).convert('L')
+        mask2 = np.array(mask2)
+    
+        # Ensure same shape with image
+        target_size = (init_image.shape[1], init_image.shape[0])  # (width, height)
+        if mask1.shape[:2] != init_image.shape[:2]:
+            mask1 = Image.fromarray(mask1).resize(target_size)
+            mask1 = np.array(mask1)
+        if mask2.shape[:2] != init_image.shape[:2]:
+            mask2 = Image.fromarray(mask2).resize(target_size)
+            mask2 = np.array(mask2)
+    
+        # Adjust dimensions to be multiple of 16
+        height = init_image.shape[0] - init_image.shape[0] % 16
+        width = init_image.shape[1] - init_image.shape[1] % 16
+        init_image = init_image[:height, :width, :]
+        mask1 = mask1[:height, :width]
+        mask2 = mask2[:height, :width]
+    
+        # Convert to binary mask
+        mask1 = (mask1.astype(float) / 255.0).astype(int)
+        mask2 = (mask2.astype(float) / 255.0).astype(int)
+    
+        # Union
+        union_mask = np.logical_or(mask1, mask2).astype(int)
+    
+        # Convert to tensor
+        mask_tensor = torch.from_numpy(union_mask).unsqueeze(0).unsqueeze(0).to(torch.bfloat16).to(self.device[0])
+    
+        return init_image, mask_tensor, height, width
+
+
     @torch.inference_mode()
     def encode(self, init_image, torch_device):
         """
@@ -325,6 +386,10 @@ class FluxEditor_CLI:
             
             ref_image, mask2, height, width = self.load_and_prepare_images(
                 "011.png", "ref_mask2.jpg")
+
+            #유니온 마스크가 필요하다면 사용. 아니면 주석처리
+            _, union_mask, _, _ = self.load_and_prepare_images_u(
+                "011.png", self.args.mask_image, "ref_mask2.jpg")
             
             # Override width/height if specified
             if self.args.width > 0:
