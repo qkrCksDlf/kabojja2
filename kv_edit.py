@@ -152,8 +152,8 @@ class Flux_kv_edit(only_Flux):
         denoise_timesteps = denoise_timesteps[opts.skip_step:]
 
         #time step 재정의
-        tx = 0.6
-        denoise_timesteps = torch.linspace(tx, 0.0, 24 + 1).tolist() #skip_step포함한것.
+        #tx = 0.6
+        #denoise_timesteps = torch.linspace(tx, 0.0, 24 + 1).tolist() #skip_step 포함한 것.
         
         # 加噪过程
         z0 = inp["img"].clone()        
@@ -162,7 +162,11 @@ class Flux_kv_edit(only_Flux):
         return z0,zt,info
     
     @torch.inference_mode()
-    def denoise(self,z0,z0_r,zt_r,inp_target,mask:Tensor,opts,info): #모두 레퍼런스로 넣어줌. info는 소스, z0도 소스. 
+    
+    def denoise(self, z0, z0_r, zt_r, inp_target, mask:Tensor, opts, info): #모두 레퍼런스로 넣어줌. info는 소스, z0도 소스. 
+        '''
+        target 객체를 추가하여 편집하기 위해 수정됨.
+        '''
         
         h = opts.height // 8
         w = opts.width // 8
@@ -180,19 +184,20 @@ class Flux_kv_edit(only_Flux):
         denoise_timesteps = get_schedule(opts.denoise_num_steps, inp_target["img"].shape[1], shift=(self.name != "flux-schnell"))
         denoise_timesteps = denoise_timesteps[opts.skip_step:]
 
-        #time step 재정의
-        tx = 0.6
-        denoise_timesteps = torch.linspace(tx, 0.0, 24 + 1).tolist() #skip_step포함한것.
+        #time step 재정의 -> inversion과 동일해야함.
+        #tx = 0.6
+        #denoise_timesteps = torch.linspace(tx, 0.0, 24 + 1).tolist() #skip_step포함한것.
        
         mask_indices = info['mask_indices']
         if opts.re_init:
             noise = torch.randn_like(zt_r)
             t  = denoise_timesteps[0]
             zt_noise = z0_r*(1 - t) + noise * t
-            inp_target["img"] = zt_noise[:, mask_indices,...] #이 부분 수정
+            inp_target["img"] = zt_noise[:, mask_indices,...]
+            
         else:
             img_name = str(info['t']) + '_' + 'img'
-            zt_r = info_r['feature'][img_name].to(zt_r.device)
+            zt_r = info['feature'][img_name].to(zt_r.device)
             inp_target["img"] = zt_r[:, mask_indices,...]
             
         if opts.attn_scale != 0 and (~bool_mask).any():
