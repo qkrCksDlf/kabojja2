@@ -258,7 +258,7 @@ class FluxEditor_CLI:
         t0 = time.perf_counter()
         
         with torch.no_grad():
-            if sor:
+            if sot:
                 inp = prepare(self.t5, self.clip, init_image, prompt=opts.source_prompt)
                 z0, zt, info = self.model.inverse(inp, mask, opts)
             else:                
