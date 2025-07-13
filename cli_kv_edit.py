@@ -426,8 +426,9 @@ class FluxEditor_CLI:
             z0, zt, info = self.inverse(encoded_image, mask if opts.attn_mask else None, opts)
             z0_r, zt_r, info_r = self.inverse(encoded_image2, mask2 if opts.attn_mask else None, opts, False)
             
-            # Perform editing
-            edited_image = self.edit(z0, zt, info, z0_r, zt_r, info_r, encoded_image, encoded_image2, mask2, opts)
+            # Perform editing -> mask는 소스/레퍼런스/union 선택.
+            edited_image = self.edit(z0, zt, info, z0_r, zt_r, info_r, encoded_image, encoded_image2, union_mask, opts)
+            
             
             # Save results
             output_path = self.save_result(edited_image, opts, self.args.mask_image)
