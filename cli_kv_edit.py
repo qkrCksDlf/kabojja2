@@ -262,7 +262,7 @@ class FluxEditor_CLI:
                 inp = prepare(self.t5, self.clip, init_image, prompt=opts.source_prompt)
                 z0, zt, info = self.model.inverse(inp, mask, opts)
             else:                
-                inp = prepare(self.t5, self.clip, init_image, prompt="") #이 부분 수정2
+                inp = prepare(self.t5, self.clip, init_image, prompt=opts.target_prompt) #이 부분 수정2
                 z0, zt, info = self.model.inverse(inp, mask, opts)
                 
             
