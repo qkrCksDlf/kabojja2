@@ -385,11 +385,12 @@ class FluxEditor_CLI:
             )
             
             ref_image, mask2, height, width = self.load_and_prepare_images(
-                "011.png", "ref_mask2.jpg")
+                self.args.ref_image, self.args.ref_mask_image)
 
             #유니온 마스크가 필요하다면 사용. 아니면 주석처리
+            #추가 수정 필요 (불필요한 인자)
             _, union_mask, _, _ = self.load_and_prepare_images_u(
-                "011.png", self.args.mask_image, "ref_mask2.jpg")
+                self.args.input_image, self.args.mask_image, self.args.ref_mask_image)
             
             # Override width/height if specified
             if self.args.width > 0:
@@ -460,6 +461,18 @@ def main():
         type=str, 
         required=True,
         help="Path to the mask image (white/bright areas will be edited, black/dark areas preserved)"
+    )
+    parser.add_argument(
+        "--ref_image", 
+        type=str, 
+        required=True,
+        help="Path to the ref image that needs to be edited"
+    )
+    parser.add_argument(
+        "--ref_mask_image", 
+        type=str, 
+        required=True,
+        help="Path to the ref mask image (white/bright areas will be edited, black/dark areas preserved)"
     )
     parser.add_argument(
         "--source_prompt", 
